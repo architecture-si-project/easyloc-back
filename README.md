@@ -22,22 +22,31 @@ L’API sera accessible à l’adresse suivante :
 http://localhost:5000
 ```
 
-## Lancer le projet avec Docker
+---
 
-Construire l’image Docker :
+## Lancer le projet avec Docker Compose
 
-```bash
-docker build -t easyloc-back .
-```
-
-Lancer le conteneur :
+Construire et lancer les services (backend + base de données) :
 
 ```bash
-docker run -p 5000:5000 easyloc-back
+docker compose up --build
 ```
 
 L’API sera accessible à l’adresse suivante :
 
 ```text
 http://localhost:5000
+```
+
+---
+
+## Réinitialiser la base de données
+
+Le script SQL d’initialisation est exécuté uniquement au premier lancement.
+
+Pour réinitialiser complètement la base :
+
+```bash
+docker compose down -v
+docker compose up --build
 ```
