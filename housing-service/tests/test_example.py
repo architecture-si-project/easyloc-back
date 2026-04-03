@@ -2,8 +2,8 @@ from app import create_app
 
 def test_example():
     app = create_app()
-    client = app.test_client()
+    houses = app.test_client()
 
-    response = client.get("/users")
+    response = houses.get("/houses")
 
     assert response.status_code == 200
