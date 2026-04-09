@@ -2,28 +2,6 @@
 
 Ce projet correspond au backend de l’application EasyLoc, développé avec Flask.
 
-## Lancer le projet avec Python
-
-Installer les dépendances :
-
-```bash
-pip install -r requirements.txt
-```
-
-Lancer l’application :
-
-```bash
-python app.py
-```
-
-L’API sera accessible à l’adresse suivante :
-
-```text
-http://localhost:5000
-```
-
----
-
 ## Lancer le projet avec Docker Compose
 
 Construire et lancer les services (backend + base de données) :
@@ -34,8 +12,14 @@ docker compose up --build
 
 L’API sera accessible à l’adresse suivante :
 
+User service :
 ```text
-http://localhost:5000
+http://localhost:5001
+```
+
+Housing service :
+```text
+http://localhost:5002
 ```
 
 ---

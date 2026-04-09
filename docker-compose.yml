@@ -16,6 +16,8 @@
       POSTGRES_DB: ${USER_DB}
       POSTGRES_USER: ${USER_USER}
       POSTGRES_PASSWORD: ${USER_PASSWORD}
+    volumes:
+      - ./user-service/database/init.sql:/docker-entrypoint-initdb.d/init.sql
 
   housing-service:
     build: ./housing-service
@@ -34,3 +36,5 @@
       POSTGRES_DB: ${HOUSING_DB}
       POSTGRES_USER: ${HOUSING_USER}
       POSTGRES_PASSWORD: ${HOUSING_PASSWORD}
+    volumes:
+      - ./housing-service/database/init.sql:/docker-entrypoint-initdb.d/init.sql
