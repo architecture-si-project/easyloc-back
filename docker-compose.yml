@@ -22,7 +22,7 @@
   housing-service:
     build: ./housing-service
     ports:
-      - "5002:5000"
+      - "5001:5000"
     env_file:
       - ./housing-service/.env
     environment:
@@ -37,4 +37,8 @@
       POSTGRES_USER: ${HOUSING_USER}
       POSTGRES_PASSWORD: ${HOUSING_PASSWORD}
     volumes:
+      - housing_data:/var/lib/postgresql/data
       - ./housing-service/database/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+volumes:
+  housing_data:
