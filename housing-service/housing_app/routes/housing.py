@@ -90,7 +90,7 @@ def create_housing():
 
     missing_or_invalid = [
         field for field in required_fields
-        if data.get(field) is None or (field in string_fields and not str(data[field]).strip())
+        if field not in data or data[field] is None or (field in string_fields and not str(data[field]).strip())
     ]
 
     if missing_or_invalid:
