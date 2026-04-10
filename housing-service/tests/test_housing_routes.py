@@ -86,19 +86,21 @@ def test_create_housing_returns_400_when_required_field_is_null(client, auth_hea
 
 
 def test_create_housing_returns_400_when_string_field_is_empty(client, auth_headers):
-    payload = {
-        "title": "  ",
-        "property_type": "studio",
-        "location": "Lyon",
-        "price_per_night": 50.0,
-        "owner_id": 1,
-    }
-    response = client.post("/housing", json=payload, headers=auth_headers)
+    for empty_field in ("title", "property_type", "location"):
+        payload = {
+            "title": "Studio Lyon",
+            "property_type": "studio",
+            "location": "Lyon",
+            "price_per_night": 50.0,
+            "owner_id": 1,
+            empty_field: "  ",
+        }
+        response = client.post("/housing", json=payload, headers=auth_headers)
 
-    assert response.status_code == 400
-    data = response.get_json()
-    assert "error" in data
-    assert "title" in data["error"]
+        assert response.status_code == 400, f"Expected 400 for empty {empty_field}"
+        data = response.get_json()
+        assert "error" in data
+        assert empty_field in data["error"]
 
 
 def test_get_housing_by_id_returns_404_when_missing(client, monkeypatch, auth_headers):
