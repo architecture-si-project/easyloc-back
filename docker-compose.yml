@@ -22,13 +22,26 @@
   housing-service:
     build: ./housing-service
     ports:
-      - "5001:5000"
+      - "5002:5000"
     env_file:
       - ./housing-service/.env
     environment:
       DATABASE_URL: postgresql://${HOUSING_USER}:${HOUSING_PASSWORD}@housing-db:5432/${HOUSING_DB}
     depends_on:
       - housing-db
+
+  reservation-service:
+    build: ./reservation-service
+    ports:
+      - "5003:5000"
+    env_file:
+      - ./reservation-service/.env
+    environment:
+      DATABASE_URL: postgresql://${RESERVATION_USER}:${RESERVATION_PASSWORD}@reservation-db:5432/${RESERVATION_DB}
+      USER_SERVICE_URL: http://user-service:5000
+      HOUSING_SERVICE_URL: http://housing-service:5000
+    depends_on:
+      - reservation-db
 
   housing-db:
     image: postgres:16
@@ -40,5 +53,16 @@
       - housing_data:/var/lib/postgresql/data
       - ./housing-service/database/init.sql:/docker-entrypoint-initdb.d/init.sql
 
+  reservation-db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${RESERVATION_DB}
+      POSTGRES_USER: ${RESERVATION_USER}
+      POSTGRES_PASSWORD: ${RESERVATION_PASSWORD}
+    volumes:
+      - reservation_data:/var/lib/postgresql/data
+      - ./reservation-service/database/init.sql:/docker-entrypoint-initdb.d/init.sql
+
 volumes:
   housing_data:
+  reservation_data:

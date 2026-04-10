@@ -22,6 +22,11 @@ Housing service :
 http://localhost:5002
 ```
 
+Reservation service :
+```text
+http://localhost:5003
+```
+
 ---
 
 ## Réinitialiser la base de données
