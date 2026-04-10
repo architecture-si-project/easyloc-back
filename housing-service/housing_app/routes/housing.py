@@ -86,9 +86,15 @@ def create_housing():
 
     data = request.get_json(silent=True) or {}
     required_fields = ["title", "property_type", "location", "price_per_night", "owner_id"]
+    string_fields = {"title", "property_type", "location"}
 
-    if not all(field in data for field in required_fields):
-        return jsonify({"error": f"Missing required fields: {required_fields}"}), 400
+    missing_or_invalid = [
+        field for field in required_fields
+        if data.get(field) is None or (field in string_fields and not str(data[field]).strip())
+    ]
+
+    if missing_or_invalid:
+        return jsonify({"error": f"Missing or invalid required fields: {missing_or_invalid}"}), 400
 
     housing = create(data)
     return jsonify(housing), 201
