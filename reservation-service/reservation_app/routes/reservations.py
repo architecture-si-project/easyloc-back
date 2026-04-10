@@ -1,3 +1,6 @@
+import os
+
+import jwt
 from flask import Blueprint, jsonify, request
 
 from ..services.reservation_service import (
@@ -8,11 +11,30 @@ from ..services.reservation_service import (
 )
 
 reservations_bp = Blueprint("reservations", __name__, url_prefix="/reservations")
+SECRET_KEY = os.getenv("SECRET_KEY")
+
+
+def _require_token():
+    auth_header = request.headers.get("Authorization")
+
+    if not auth_header:
+        return jsonify({"error": "Missing token"}), 401
+
+    try:
+        token = auth_header.split(" ")[1]
+        jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+    except Exception:
+        return jsonify({"error": "Invalid token"}), 401
+
+    return None
 
 
 @reservations_bp.route("/requests", methods=["POST"])
 def create_request():
-    # Cree une nouvelle demande de location.
+    auth_error = _require_token()
+    if auth_error:
+        return auth_error
+
     data = request.get_json(silent=True) or {}
 
     tenant_id = data.get("tenant_id")
@@ -24,7 +46,6 @@ def create_request():
     if not tenant_id or not housing_id or not start_date or not end_date:
         return jsonify({"error": "Missing required fields"}), 400
 
-    # Le service metier effectue aussi les verifications inter-services (user/housing).
     reservation = create_reservation_request(
         tenant_id=tenant_id,
         housing_id=housing_id,
@@ -56,7 +77,10 @@ def create_request():
 
 @reservations_bp.route("/requests", methods=["GET"])
 def list_requests():
-    # Liste les demandes avec filtres optionnels par statut et locataire.
+    auth_error = _require_token()
+    if auth_error:
+        return auth_error
+
     status = request.args.get("status")
     tenant_id = request.args.get("tenant_id")
 
@@ -72,7 +96,10 @@ def list_requests():
 
 @reservations_bp.route("/requests/<int:reservation_id>", methods=["GET"])
 def get_request(reservation_id):
-    # Retourne le detail d'une demande par identifiant.
+    auth_error = _require_token()
+    if auth_error:
+        return auth_error
+
     reservation = get_reservation_request(reservation_id)
 
     if not reservation:
@@ -83,7 +110,10 @@ def get_request(reservation_id):
 
 @reservations_bp.route("/requests/<int:reservation_id>/status", methods=["PATCH"])
 def patch_request_status(reservation_id):
-    # Fait evoluer la demande dans le workflow de location.
+    auth_error = _require_token()
+    if auth_error:
+        return auth_error
+
     data = request.get_json(silent=True) or {}
 
     new_status = data.get("status")

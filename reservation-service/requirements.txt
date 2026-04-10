@@ -3,3 +3,4 @@ python-dotenv
 pytest
 psycopg2-binary
 requests
+PyJWT

@@ -28,7 +28,7 @@ def create_user(name, email, password):
     cur = conn.cursor()
 
     cur.execute(
-        "INSERT INTO users (name, email, password) VALUES (%s, %s, %s) RETURNING userid, name, email",
+        "INSERT INTO users (name, email, password) VALUES (%s, %s, %s) RETURNING id, name, email",
         (name, email, password),
     )
 
@@ -75,7 +75,7 @@ def get_user_by_email(email):
     conn = get_connection()
     cur = conn.cursor()
 
-    cur.execute("SELECT * FROM users WHERE email = %s", (email,))
+    cur.execute("SELECT id, name, email, password FROM users WHERE email = %s", (email,))
     user = cur.fetchone()
 
     cur.close()
