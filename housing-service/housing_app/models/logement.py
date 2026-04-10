@@ -1,4 +1,4 @@
-from app import db
+from housing_app import db
 
 
 class Logement(db.Model):

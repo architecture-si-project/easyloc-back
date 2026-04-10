@@ -17,6 +17,7 @@
       POSTGRES_USER: ${USER_USER}
       POSTGRES_PASSWORD: ${USER_PASSWORD}
     volumes:
+      - user_data:/var/lib/postgresql/data
       - ./user-service/database/init.sql:/docker-entrypoint-initdb.d/init.sql
 
   housing-service:
@@ -29,6 +30,16 @@
       DATABASE_URL: postgresql://${HOUSING_USER}:${HOUSING_PASSWORD}@housing-db:5432/${HOUSING_DB}
     depends_on:
       - housing-db
+
+  housing-db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${HOUSING_DB}
+      POSTGRES_USER: ${HOUSING_USER}
+      POSTGRES_PASSWORD: ${HOUSING_PASSWORD}
+    volumes:
+      - housing_data:/var/lib/postgresql/data
+      - ./housing-service/database/init.sql:/docker-entrypoint-initdb.d/init.sql
 
   reservation-service:
     build: ./reservation-service
@@ -43,16 +54,6 @@
     depends_on:
       - reservation-db
 
-  housing-db:
-    image: postgres:16
-    environment:
-      POSTGRES_DB: ${HOUSING_DB}
-      POSTGRES_USER: ${HOUSING_USER}
-      POSTGRES_PASSWORD: ${HOUSING_PASSWORD}
-    volumes:
-      - housing_data:/var/lib/postgresql/data
-      - ./housing-service/database/init.sql:/docker-entrypoint-initdb.d/init.sql
-
   reservation-db:
     image: postgres:16
     environment:
@@ -64,5 +65,6 @@
       - ./reservation-service/database/init.sql:/docker-entrypoint-initdb.d/init.sql
 
 volumes:
+  user_data:
   housing_data:
   reservation_data:

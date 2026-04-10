@@ -1,5 +1,5 @@
-from app import db
-from app.models.logement import Logement
+from housing_app import db
+from housing_app.models.logement import Logement
 
 
 def get_all():

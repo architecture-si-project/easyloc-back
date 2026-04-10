@@ -12,7 +12,7 @@ def create_app():
 
     db.init_app(app)
 
-    from app.controllers.logement_controller import logement_bp
+    from housing_app.controllers.logement_controller import logement_bp
     app.register_blueprint(logement_bp)
 
     with app.app_context():
