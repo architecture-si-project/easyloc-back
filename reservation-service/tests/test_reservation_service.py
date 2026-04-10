@@ -113,6 +113,34 @@ def test_validate_cross_service_references_returns_none_when_all_exist(monkeypat
     assert result is None
 
 
+def test_validate_cross_service_references_uses_new_housing_endpoint(monkeypatch):
+    calls = []
+
+    def fake_resource_exists(url):
+        calls.append(url)
+        return True
+
+    monkeypatch.setattr(reservation_service, "_resource_exists", fake_resource_exists)
+
+    result = reservation_service.validate_cross_service_references(tenant_id=4, housing_id=8)
+
+    assert result is None
+    assert calls[0].endswith("/users/4")
+    assert calls[1].endswith("/housing/8")
+
+
+def test_is_housing_available_uses_available_field(monkeypatch):
+    monkeypatch.setattr(
+        reservation_service,
+        "_fetch_resource",
+        lambda url: {"id": 1, "available": False},
+    )
+
+    result = reservation_service.is_housing_available(1)
+
+    assert result is False
+
+
 def test_create_reservation_request_returns_validation_error_before_db(monkeypatch):
     monkeypatch.setattr(
         reservation_service,

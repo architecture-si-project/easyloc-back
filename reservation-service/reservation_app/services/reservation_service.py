@@ -30,12 +30,12 @@ ALLOWED_TRANSITIONS = {
 
 
 def get_connection():
-    # Ouvre une connexion PostgreSQL dediee a l'operation en cours.
+    # Open a dedicated PostgreSQL connection for the current operation.
     return psycopg2.connect(DATABASE_URL)
 
 
 def _serialize_reservation_row(row):
-    # Convertit une ligne SQL en dictionnaire JSON pour les routes.
+    # Convert a SQL row into a JSON-friendly dictionary for the routes.
     return {
         "reservation_id": row[0],
         "tenant_id": row[1],
@@ -58,7 +58,7 @@ def can_transition(current_status: str, new_status: str):
 
 
 def _resource_exists(url):
-    # Appel HTTP court pour verifier l'existence d'une ressource distante.
+    # Make a short HTTP call to verify that a remote resource exists.
     try:
         response = requests.get(url, timeout=2)
         return response.status_code == 200
@@ -67,7 +67,7 @@ def _resource_exists(url):
 
 
 def _fetch_resource(url):
-    # Recupere une ressource JSON distante pour verifier des attributs metier.
+    # Fetch a remote JSON resource to validate business attributes.
     try:
         response = requests.get(url, timeout=2)
         if response.status_code != 200:
@@ -78,18 +78,18 @@ def _fetch_resource(url):
 
 
 def validate_cross_service_references(tenant_id, housing_id):
-    # Verification des dependances externes pour garder une coherence inter-services.
+    # Check external dependencies to keep the services consistent.
     if not _resource_exists(f"{USER_SERVICE_URL}/users/{tenant_id}"):
         return {"error": "tenant_not_found"}
 
-    if not _resource_exists(f"{HOUSING_SERVICE_URL}/logements/{housing_id}"):
+    if not _resource_exists(f"{HOUSING_SERVICE_URL}/housing/{housing_id}"):
         return {"error": "housing_not_found"}
 
     return None
 
 
 def validate_reservation_dates(start_date, end_date):
-    # Valide le format ISO (YYYY-MM-DD) et la coherence chronologique des dates.
+    # Validate the ISO format (YYYY-MM-DD) and the chronological order of dates.
     try:
         parsed_start = datetime.strptime(str(start_date), "%Y-%m-%d").date()
         parsed_end = datetime.strptime(str(end_date), "%Y-%m-%d").date()
@@ -103,15 +103,15 @@ def validate_reservation_dates(start_date, end_date):
 
 
 def is_housing_available(housing_id):
-    # Verifie la disponibilite globale du logement declaree par housing-service.
-    housing = _fetch_resource(f"{HOUSING_SERVICE_URL}/logements/{housing_id}")
+    # Check whether the housing unit is currently available in housing-service.
+    housing = _fetch_resource(f"{HOUSING_SERVICE_URL}/housing/{housing_id}")
     if not housing:
         return False
-    return bool(housing.get("disponible", True))
+    return bool(housing.get("available", True))
 
 
 def has_overlapping_reservation(housing_id, start_date, end_date):
-    # Evite le double booking sur la meme periode pour un logement.
+    # Prevent double booking for the same housing unit during the same period.
     conn = get_connection()
     cur = conn.cursor()
 
@@ -136,7 +136,7 @@ def has_overlapping_reservation(housing_id, start_date, end_date):
 
 
 def create_reservation_request(tenant_id, housing_id, start_date, end_date, notes=None):
-    # Refuse la creation quand les dates ne sont pas valides.
+    # Reject creation when the dates are invalid.
     date_validation = validate_reservation_dates(start_date, end_date)
 
     if date_validation.get("error"):
@@ -145,7 +145,7 @@ def create_reservation_request(tenant_id, housing_id, start_date, end_date, note
     parsed_start_date = date_validation["start_date"]
     parsed_end_date = date_validation["end_date"]
 
-    # Empêche la creation si le locataire ou logement n'existe pas dans les autres services.
+    # Prevent creation if the tenant or housing unit does not exist in the other services.
     validation_error = validate_cross_service_references(tenant_id, housing_id)
 
     if validation_error:
@@ -170,7 +170,7 @@ def create_reservation_request(tenant_id, housing_id, start_date, end_date, note
     )
     row = cur.fetchone()
 
-    # On journalise chaque changement d'etat pour suivre le processus de location.
+    # Log each state change to track the rental process.
     cur.execute(
         """
         INSERT INTO reservation_process_events (reservation_id, old_status, new_status, actor_id, comment)
@@ -187,7 +187,7 @@ def create_reservation_request(tenant_id, housing_id, start_date, end_date, note
 
 
 def list_reservation_requests(status=None, tenant_id=None):
-    # Construit dynamiquement la requete selon les filtres fournis.
+    # Build the query dynamically based on the provided filters.
     conn = get_connection()
     cur = conn.cursor()
 
@@ -218,7 +218,7 @@ def list_reservation_requests(status=None, tenant_id=None):
 
 
 def get_reservation_request(reservation_id):
-    # Lecture simple d'une demande par son identifiant.
+    # Simple read of a request by its identifier.
     conn = get_connection()
     cur = conn.cursor()
 
@@ -242,7 +242,7 @@ def get_reservation_request(reservation_id):
 
 
 def _persist_status_transition(reservation_id, current_status, new_status, actor_id=None, comment=None):
-    # Met a jour le statut puis enregistre un evenement d'audit associe.
+    # Update the status and record an associated audit event.
     conn = get_connection()
     cur = conn.cursor()
 
@@ -273,7 +273,7 @@ def _persist_status_transition(reservation_id, current_status, new_status, actor
 
 
 def update_reservation_status(reservation_id, new_status, actor_id=None, comment=None):
-    # La validation des transitions permet de garder un workflow de location coherent.
+    # Transition validation keeps the rental workflow consistent.
     if not is_valid_status(new_status):
         return {"error": "invalid_status"}
 

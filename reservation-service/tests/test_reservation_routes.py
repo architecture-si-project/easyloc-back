@@ -1,19 +1,41 @@
+import pytest
+
 from reservation_app import create_app
 
 
-def test_create_request_returns_400_when_fields_are_missing():
+@pytest.fixture
+def app():
     app = create_app()
-    client = app.test_client()
+    app.config["TESTING"] = True
+    return app
 
+
+@pytest.fixture
+def client(app):
+    return app.test_client()
+
+
+@pytest.fixture
+def auth_headers(monkeypatch):
+    monkeypatch.setattr("reservation_app.routes.reservations.jwt.decode", lambda token, secret, algorithms: {"user_id": 1})
+    return {"Authorization": "Bearer test-token"}
+
+
+def test_create_request_returns_401_when_token_is_missing(client):
     response = client.post("/reservations/requests", json={"tenant_id": 1})
+
+    assert response.status_code == 401
+    assert response.get_json() == {"error": "Missing token"}
+
+
+def test_create_request_returns_400_when_fields_are_missing(client, auth_headers):
+    response = client.post("/reservations/requests", json={"tenant_id": 1}, headers=auth_headers)
 
     assert response.status_code == 400
     assert response.get_json() == {"error": "Missing required fields"}
 
 
-def test_create_request_returns_201_when_request_is_created(monkeypatch):
-    app = create_app()
-    client = app.test_client()
+def test_create_request_returns_201_when_request_is_created(client, monkeypatch, auth_headers):
 
     monkeypatch.setattr(
         "reservation_app.routes.reservations.create_reservation_request",
@@ -39,15 +61,14 @@ def test_create_request_returns_201_when_request_is_created(monkeypatch):
             "end_date": "2026-05-31",
             "notes": "Need furnished place",
         },
+        headers=auth_headers,
     )
 
     assert response.status_code == 201
     assert response.get_json()["status"] == "pending"
 
 
-def test_create_request_returns_404_when_tenant_is_missing_in_user_service(monkeypatch):
-    app = create_app()
-    client = app.test_client()
+def test_create_request_returns_404_when_tenant_is_missing_in_user_service(client, monkeypatch, auth_headers):
 
     monkeypatch.setattr(
         "reservation_app.routes.reservations.create_reservation_request",
@@ -62,15 +83,14 @@ def test_create_request_returns_404_when_tenant_is_missing_in_user_service(monke
             "start_date": "2026-05-01",
             "end_date": "2026-05-31",
         },
+        headers=auth_headers,
     )
 
     assert response.status_code == 404
     assert response.get_json() == {"error": "Tenant not found in user-service"}
 
 
-def test_create_request_returns_404_when_housing_is_missing_in_housing_service(monkeypatch):
-    app = create_app()
-    client = app.test_client()
+def test_create_request_returns_404_when_housing_is_missing_in_housing_service(client, monkeypatch, auth_headers):
 
     monkeypatch.setattr(
         "reservation_app.routes.reservations.create_reservation_request",
@@ -85,15 +105,14 @@ def test_create_request_returns_404_when_housing_is_missing_in_housing_service(m
             "start_date": "2026-05-01",
             "end_date": "2026-05-31",
         },
+        headers=auth_headers,
     )
 
     assert response.status_code == 404
     assert response.get_json() == {"error": "Housing not found in housing-service"}
 
 
-def test_create_request_returns_400_when_date_format_is_invalid(monkeypatch):
-    app = create_app()
-    client = app.test_client()
+def test_create_request_returns_400_when_date_format_is_invalid(client, monkeypatch, auth_headers):
 
     monkeypatch.setattr(
         "reservation_app.routes.reservations.create_reservation_request",
@@ -108,15 +127,14 @@ def test_create_request_returns_400_when_date_format_is_invalid(monkeypatch):
             "start_date": "01-05-2026",
             "end_date": "31-05-2026",
         },
+        headers=auth_headers,
     )
 
     assert response.status_code == 400
     assert response.get_json() == {"error": "Dates must follow YYYY-MM-DD format"}
 
 
-def test_create_request_returns_400_when_date_range_is_invalid(monkeypatch):
-    app = create_app()
-    client = app.test_client()
+def test_create_request_returns_400_when_date_range_is_invalid(client, monkeypatch, auth_headers):
 
     monkeypatch.setattr(
         "reservation_app.routes.reservations.create_reservation_request",
@@ -131,15 +149,14 @@ def test_create_request_returns_400_when_date_range_is_invalid(monkeypatch):
             "start_date": "2026-06-01",
             "end_date": "2026-05-01",
         },
+        headers=auth_headers,
     )
 
     assert response.status_code == 400
     assert response.get_json() == {"error": "start_date must be before or equal to end_date"}
 
 
-def test_create_request_returns_409_when_housing_is_marked_unavailable(monkeypatch):
-    app = create_app()
-    client = app.test_client()
+def test_create_request_returns_409_when_housing_is_marked_unavailable(client, monkeypatch, auth_headers):
 
     monkeypatch.setattr(
         "reservation_app.routes.reservations.create_reservation_request",
@@ -154,15 +171,14 @@ def test_create_request_returns_409_when_housing_is_marked_unavailable(monkeypat
             "start_date": "2026-05-01",
             "end_date": "2026-05-31",
         },
+        headers=auth_headers,
     )
 
     assert response.status_code == 409
     assert response.get_json() == {"error": "Housing is currently unavailable"}
 
 
-def test_create_request_returns_409_when_period_overlaps(monkeypatch):
-    app = create_app()
-    client = app.test_client()
+def test_create_request_returns_409_when_period_overlaps(client, monkeypatch, auth_headers):
 
     monkeypatch.setattr(
         "reservation_app.routes.reservations.create_reservation_request",
@@ -177,27 +193,24 @@ def test_create_request_returns_409_when_period_overlaps(monkeypatch):
             "start_date": "2026-05-15",
             "end_date": "2026-05-25",
         },
+        headers=auth_headers,
     )
 
     assert response.status_code == 409
     assert response.get_json() == {"error": "Housing is not available on the requested period"}
 
 
-def test_get_request_returns_404_when_reservation_does_not_exist(monkeypatch):
-    app = create_app()
-    client = app.test_client()
+def test_get_request_returns_404_when_reservation_does_not_exist(client, monkeypatch, auth_headers):
 
     monkeypatch.setattr("reservation_app.routes.reservations.get_reservation_request", lambda reservation_id: None)
 
-    response = client.get("/reservations/requests/999")
+    response = client.get("/reservations/requests/999", headers=auth_headers)
 
     assert response.status_code == 404
     assert response.get_json() == {"error": "Reservation request not found"}
 
 
-def test_patch_request_status_returns_409_for_invalid_transition(monkeypatch):
-    app = create_app()
-    client = app.test_client()
+def test_patch_request_status_returns_409_for_invalid_transition(client, monkeypatch, auth_headers):
 
     monkeypatch.setattr(
         "reservation_app.routes.reservations.update_reservation_status",
@@ -210,6 +223,7 @@ def test_patch_request_status_returns_409_for_invalid_transition(monkeypatch):
     response = client.patch(
         "/reservations/requests/1/status",
         json={"status": "active", "actor_id": 7, "comment": "Skipping steps"},
+        headers=auth_headers,
     )
 
     assert response.status_code == 409
@@ -220,9 +234,7 @@ def test_patch_request_status_returns_409_for_invalid_transition(monkeypatch):
     }
 
 
-def test_patch_request_status_returns_200_when_valid(monkeypatch):
-    app = create_app()
-    client = app.test_client()
+def test_patch_request_status_returns_200_when_valid(client, monkeypatch, auth_headers):
 
     monkeypatch.setattr(
         "reservation_app.routes.reservations.update_reservation_status",
@@ -238,6 +250,7 @@ def test_patch_request_status_returns_200_when_valid(monkeypatch):
     response = client.patch(
         "/reservations/requests/1/status",
         json={"status": "under_review", "actor_id": 7, "comment": "Documents validated"},
+        headers=auth_headers,
     )
 
     assert response.status_code == 200

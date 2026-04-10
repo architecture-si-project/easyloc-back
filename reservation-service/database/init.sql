@@ -1,4 +1,4 @@
-CREATE TABLE reservation_requests
+CREATE TABLE IF NOT EXISTS reservation_requests
 (
     reservation_id SERIAL PRIMARY KEY,
     tenant_id      INTEGER      NOT NULL,
@@ -12,7 +12,7 @@ CREATE TABLE reservation_requests
     CONSTRAINT reservation_dates_check CHECK (start_date <= end_date)
 );
 
-CREATE TABLE reservation_process_events
+CREATE TABLE IF NOT EXISTS reservation_process_events
 (
     event_id        SERIAL PRIMARY KEY,
     reservation_id  INTEGER      NOT NULL REFERENCES reservation_requests (reservation_id) ON DELETE CASCADE,
@@ -23,7 +23,7 @@ CREATE TABLE reservation_process_events
     created_at      TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_reservation_requests_tenant ON reservation_requests (tenant_id);
-CREATE INDEX idx_reservation_requests_housing ON reservation_requests (housing_id);
-CREATE INDEX idx_reservation_requests_status ON reservation_requests (status);
-CREATE INDEX idx_reservation_events_reservation ON reservation_process_events (reservation_id);
+CREATE INDEX IF NOT EXISTS idx_reservation_requests_tenant ON reservation_requests (tenant_id);
+CREATE INDEX IF NOT EXISTS idx_reservation_requests_housing ON reservation_requests (housing_id);
+CREATE INDEX IF NOT EXISTS idx_reservation_requests_status ON reservation_requests (status);
+CREATE INDEX IF NOT EXISTS idx_reservation_events_reservation ON reservation_process_events (reservation_id);
