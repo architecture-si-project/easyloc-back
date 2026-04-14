@@ -2,11 +2,14 @@ import os
 
 from housing_app import create_app
 from dotenv import load_dotenv
+from flask_cors import CORS
 
 
 load_dotenv()
 
 app = create_app()
+CORS(app)
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
