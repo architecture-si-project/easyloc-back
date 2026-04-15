@@ -14,15 +14,14 @@ def _require_token():
     auth_header = request.headers.get("Authorization")
 
     if not auth_header:
-        return jsonify({"error": "Missing token"}), 401
+        return None, (jsonify({"error": "Missing token"}), 401)
 
     try:
         token = auth_header.split(" ")[1]
-        jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        return payload, None
     except Exception:
-        return jsonify({"error": "Invalid token"}), 401
-
-    return None
+        return None, (jsonify({"error": "Invalid token"}), 401)
 
 
 def _parse_boolean(value):
@@ -44,7 +43,7 @@ def _parse_boolean(value):
 
 @housing_bp.route("", methods=["GET"])
 def get_housings():
-    auth_error = _require_token()
+    _, auth_error = _require_token()
     if auth_error:
         return auth_error
 
@@ -53,7 +52,7 @@ def get_housings():
 
 @housing_bp.route("/search", methods=["GET"])
 def search_housings():
-    auth_error = _require_token()
+    _, auth_error = _require_token()
     if auth_error:
         return auth_error
 
@@ -68,7 +67,7 @@ def search_housings():
 
 @housing_bp.route("/<int:housing_id>", methods=["GET"])
 def get_housing(housing_id):
-    auth_error = _require_token()
+    _, auth_error = _require_token()
     if auth_error:
         return auth_error
 
@@ -80,12 +79,15 @@ def get_housing(housing_id):
 
 @housing_bp.route("", methods=["POST"])
 def create_housing():
-    auth_error = _require_token()
+    payload, auth_error = _require_token()
     if auth_error:
         return auth_error
 
     data = request.get_json(silent=True) or {}
-    required_fields = ["title", "property_type", "location", "price_per_night", "owner_id"]
+    # owner_id is extracted from the JWT token, not from the request body
+    data["owner_id"] = payload["user_id"]
+
+    required_fields = ["title", "property_type", "location", "price_per_night"]
     string_fields = {"title", "property_type", "location"}
 
     missing_or_invalid = [
@@ -104,7 +106,7 @@ def create_housing():
 
 @housing_bp.route("/<int:housing_id>", methods=["PUT"])
 def update_housing(housing_id):
-    auth_error = _require_token()
+    _, auth_error = _require_token()
     if auth_error:
         return auth_error
 
@@ -119,7 +121,7 @@ def update_housing(housing_id):
 
 @housing_bp.route("/<int:housing_id>", methods=["DELETE"])
 def delete_housing(housing_id):
-    auth_error = _require_token()
+    _, auth_error = _require_token()
     if auth_error:
         return auth_error
 
