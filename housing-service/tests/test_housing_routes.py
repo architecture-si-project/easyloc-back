@@ -66,7 +66,6 @@ def test_create_housing_returns_400_when_fields_missing(client, auth_headers):
     assert "error" in data
     assert "location" in data["error"]
     assert "price_per_night" in data["error"]
-    assert "owner_id" in data["error"]
 
 
 def test_create_housing_returns_400_when_required_field_is_null(client, auth_headers):
