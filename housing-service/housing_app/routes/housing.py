@@ -24,25 +24,20 @@ def _require_token():
         return None, (jsonify({"error": "Invalid token"}), 401)
 
 
-def _parse_boolean(value):
-    if value is None:
-        return None
-
-    if isinstance(value, bool):
-        return value
-
-    if isinstance(value, str):
-        normalized = value.strip().lower()
-        if normalized in {"true", "1", "yes", "y"}:
-            return True
-        if normalized in {"false", "0", "no", "n"}:
-            return False
-
-    return None
-
-
 @housing_bp.route("", methods=["GET"])
 def get_housings():
+    """List housing units.
+    ---
+    tags:
+      - housing-service
+    security:
+      - bearerAuth: []
+    responses:
+      200:
+        description: Housing list
+      401:
+        description: Missing or invalid token
+    """
     _, auth_error = _require_token()
     if auth_error:
         return auth_error
@@ -52,6 +47,35 @@ def get_housings():
 
 @housing_bp.route("/search", methods=["GET"])
 def search_housings():
+    """Search housing units.
+    ---
+    tags:
+      - housing-service
+    security:
+      - bearerAuth: []
+    parameters:
+      - in: query
+        name: location
+        schema:
+          type: string
+      - in: query
+        name: property_type
+        schema:
+          type: string
+      - in: query
+        name: price_max
+        schema:
+          type: number
+      - in: query
+        name: owner_id
+        schema:
+          type: integer
+    responses:
+      200:
+        description: Filtered housing list
+      401:
+        description: Missing or invalid token
+    """
     _, auth_error = _require_token()
     if auth_error:
         return auth_error
@@ -67,6 +91,18 @@ def search_housings():
 
 @housing_bp.route("/mine", methods=["GET"])
 def get_housings_by_owner():
+    """List housing units owned by authenticated user.
+    ---
+    tags:
+      - housing-service
+    security:
+      - bearerAuth: []
+    responses:
+      200:
+        description: Housing list for current owner
+      401:
+        description: Missing or invalid token
+    """
     payload, auth_error = _require_token()
     if auth_error:
         return auth_error
@@ -76,6 +112,26 @@ def get_housings_by_owner():
 
 @housing_bp.route("/<int:housing_id>", methods=["GET"])
 def get_housing(housing_id):
+    """Get a housing unit by ID.
+    ---
+    tags:
+      - housing-service
+    security:
+      - bearerAuth: []
+    parameters:
+      - in: path
+        name: housing_id
+        required: true
+        schema:
+          type: integer
+    responses:
+      200:
+        description: Housing details
+      401:
+        description: Missing or invalid token
+      404:
+        description: Housing not found
+    """
     _, auth_error = _require_token()
     if auth_error:
         return auth_error
@@ -88,12 +144,42 @@ def get_housing(housing_id):
 
 @housing_bp.route("", methods=["POST"])
 def create_housing():
+    """Create a housing unit.
+    ---
+    tags:
+      - housing-service
+    security:
+      - bearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              title:
+                type: string
+              property_type:
+                type: string
+              location:
+                type: string
+              price_per_night:
+                type: number
+            required: [title, property_type, location, price_per_night]
+    responses:
+      201:
+        description: Housing created
+      400:
+        description: Missing or invalid required fields
+      401:
+        description: Missing or invalid token
+    """
     payload, auth_error = _require_token()
     if auth_error:
         return auth_error
 
     data = request.get_json(silent=True) or {}
-    # owner_id is extracted from the JWT token, not from the request body
+    # owner_id comes from JWT to prevent client-side impersonation.
     data["owner_id"] = payload["user_id"]
 
     required_fields = ["title", "property_type", "location", "price_per_night"]
@@ -115,6 +201,32 @@ def create_housing():
 
 @housing_bp.route("/<int:housing_id>", methods=["PUT"])
 def update_housing(housing_id):
+    """Update a housing unit.
+    ---
+    tags:
+      - housing-service
+    security:
+      - bearerAuth: []
+    parameters:
+      - in: path
+        name: housing_id
+        required: true
+        schema:
+          type: integer
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+    responses:
+      200:
+        description: Housing updated
+      401:
+        description: Missing or invalid token
+      404:
+        description: Housing not found
+    """
     _, auth_error = _require_token()
     if auth_error:
         return auth_error
@@ -130,6 +242,26 @@ def update_housing(housing_id):
 
 @housing_bp.route("/<int:housing_id>", methods=["DELETE"])
 def delete_housing(housing_id):
+    """Delete a housing unit.
+    ---
+    tags:
+      - housing-service
+    security:
+      - bearerAuth: []
+    parameters:
+      - in: path
+        name: housing_id
+        required: true
+        schema:
+          type: integer
+    responses:
+      200:
+        description: Housing deleted
+      401:
+        description: Missing or invalid token
+      404:
+        description: Housing not found
+    """
     _, auth_error = _require_token()
     if auth_error:
         return auth_error
@@ -140,4 +272,3 @@ def delete_housing(housing_id):
         return jsonify({"error": "Housing not found"}), 404
 
     return jsonify({"message": "Housing deleted"})
-

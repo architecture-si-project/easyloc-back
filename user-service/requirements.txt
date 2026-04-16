@@ -5,3 +5,4 @@ pytest
 psycopg2-binary
 bcrypt
 PyJWT
+flasgger
