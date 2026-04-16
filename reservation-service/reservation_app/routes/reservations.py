@@ -33,6 +33,42 @@ def _require_token():
 
 @reservations_bp.route("/requests", methods=["POST"])
 def create_request():
+    """Create a reservation request.
+    ---
+    tags:
+      - reservation-service
+    security:
+      - bearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              housing_id:
+                type: integer
+              start_date:
+                type: string
+                format: date
+              end_date:
+                type: string
+                format: date
+              notes:
+                type: string
+            required: [housing_id, start_date, end_date]
+    responses:
+      201:
+        description: Reservation created
+      400:
+        description: Invalid payload
+      401:
+        description: Missing or invalid token
+      404:
+        description: Related entity not found
+      409:
+        description: Reservation conflict
+    """
     payload, auth_error = _require_token()
     if auth_error:
         return auth_error
@@ -83,6 +119,29 @@ def create_request():
 
 @reservations_bp.route("/requests", methods=["GET"])
 def list_requests():
+    """List reservation requests.
+    ---
+    tags:
+      - reservation-service
+    security:
+      - bearerAuth: []
+    parameters:
+      - in: query
+        name: status
+        schema:
+          type: string
+      - in: query
+        name: tenant_id
+        schema:
+          type: integer
+    responses:
+      200:
+        description: Reservation requests list
+      400:
+        description: Invalid query params
+      401:
+        description: Missing or invalid token
+    """
     _, auth_error = _require_token()
     if auth_error:
         return auth_error
@@ -102,6 +161,23 @@ def list_requests():
 
 @reservations_bp.route("/requests/me", methods=["GET"])
 def list_my_requests():
+    """List authenticated user's reservation requests.
+    ---
+    tags:
+      - reservation-service
+    security:
+      - bearerAuth: []
+    parameters:
+      - in: query
+        name: status
+        schema:
+          type: string
+    responses:
+      200:
+        description: User reservation requests list
+      401:
+        description: Missing or invalid token
+    """
     payload, auth_error = _require_token()
     if auth_error:
         return auth_error
@@ -113,6 +189,26 @@ def list_my_requests():
 
 @reservations_bp.route("/requests/<int:reservation_id>", methods=["GET"])
 def get_request(reservation_id):
+    """Get reservation request by ID.
+    ---
+    tags:
+      - reservation-service
+    security:
+      - bearerAuth: []
+    parameters:
+      - in: path
+        name: reservation_id
+        required: true
+        schema:
+          type: integer
+    responses:
+      200:
+        description: Reservation request details
+      401:
+        description: Missing or invalid token
+      404:
+        description: Reservation request not found
+    """
     _, auth_error = _require_token()
     if auth_error:
         return auth_error
@@ -127,6 +223,44 @@ def get_request(reservation_id):
 
 @reservations_bp.route("/requests/<int:reservation_id>/status", methods=["PATCH"])
 def patch_request_status(reservation_id):
+    """Update reservation request status.
+    ---
+    tags:
+      - reservation-service
+    security:
+      - bearerAuth: []
+    parameters:
+      - in: path
+        name: reservation_id
+        required: true
+        schema:
+          type: integer
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+              actor_id:
+                type: integer
+              comment:
+                type: string
+            required: [status]
+    responses:
+      200:
+        description: Reservation request updated
+      400:
+        description: Invalid payload
+      401:
+        description: Missing or invalid token
+      404:
+        description: Reservation request not found
+      409:
+        description: Invalid status transition
+    """
     _, auth_error = _require_token()
     if auth_error:
         return auth_error
@@ -163,3 +297,4 @@ def patch_request_status(reservation_id):
         ), 409
 
     return jsonify(result["reservation"])
+

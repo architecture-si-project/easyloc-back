@@ -5,3 +5,4 @@ psycopg2-binary
 PyJWT
 pytest
 pytest-flask
+flasgger

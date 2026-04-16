@@ -1,4 +1,15 @@
 ﻿services:
+  docs-service:
+    build: ./docs-service
+    ports:
+      - "5000:5000"
+    environment:
+      SOURCE_OPENAPI_URLS: '["http://user-service:5000/openapi.json", "http://housing-service:5000/openapi.json", "http://reservation-service:5000/openapi.json"]'
+    depends_on:
+      - user-service
+      - housing-service
+      - reservation-service
+
   user-service:
     build: ./user-service
     ports:
