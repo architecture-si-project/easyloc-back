@@ -31,6 +31,7 @@ def test_validate_reservation_dates_accepts_valid_range():
 
 def test_can_transition_validates_workflow_rules():
     assert reservation_service.can_transition("pending", "under_review") is True
+    assert reservation_service.can_transition("pending", "approved") is True
     assert reservation_service.can_transition("pending", "active") is False
 
 
