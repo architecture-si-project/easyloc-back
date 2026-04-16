@@ -1,4 +1,15 @@
 ﻿services:
+  docs-service:
+    build: ./docs-service
+    ports:
+      - "5000:5000"
+    environment:
+      SOURCE_OPENAPI_URLS: '["http://user-service:5000/openapi.json", "http://housing-service:5000/openapi.json", "http://reservation-service:5000/openapi.json"]'
+    depends_on:
+      - user-service
+      - housing-service
+      - reservation-service
+
   user-service:
     build: ./user-service
     ports:
@@ -17,6 +28,7 @@
       POSTGRES_USER: ${USER_USER}
       POSTGRES_PASSWORD: ${USER_PASSWORD}
     volumes:
+      - user_data:/var/lib/postgresql/data
       - ./user-service/database/init.sql:/docker-entrypoint-initdb.d/init.sql
 
   housing-service:
@@ -37,4 +49,33 @@
       POSTGRES_USER: ${HOUSING_USER}
       POSTGRES_PASSWORD: ${HOUSING_PASSWORD}
     volumes:
+      - housing_data:/var/lib/postgresql/data
       - ./housing-service/database/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  reservation-service:
+    build: ./reservation-service
+    ports:
+      - "5003:5000"
+    env_file:
+      - ./reservation-service/.env
+    environment:
+      DATABASE_URL: postgresql://${RESERVATION_USER}:${RESERVATION_PASSWORD}@reservation-db:5432/${RESERVATION_DB}
+      USER_SERVICE_URL: http://user-service:5000
+      HOUSING_SERVICE_URL: http://housing-service:5000
+    depends_on:
+      - reservation-db
+
+  reservation-db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${RESERVATION_DB}
+      POSTGRES_USER: ${RESERVATION_USER}
+      POSTGRES_PASSWORD: ${RESERVATION_PASSWORD}
+    volumes:
+      - reservation_data:/var/lib/postgresql/data
+      - ./reservation-service/database/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+volumes:
+  user_data:
+  housing_data:
+  reservation_data:

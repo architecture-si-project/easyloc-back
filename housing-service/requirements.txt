@@ -1,3 +1,8 @@
 flask
+flask_cors
 python-dotenv
+psycopg2-binary
+PyJWT
 pytest
+pytest-flask
+flasgger

@@ -22,6 +22,27 @@ Housing service :
 http://localhost:5002
 ```
 
+Reservation service :
+```text
+http://localhost:5003
+```
+
+## Swagger (single URL)
+
+All services are documented in one Swagger UI:
+
+```text
+http://localhost:5000/docs
+```
+
+If needed, raw OpenAPI sources are still available per service:
+
+```text
+http://localhost:5001/openapi.json
+http://localhost:5002/openapi.json
+http://localhost:5003/openapi.json
+```
+
 ---
 
 ## Réinitialiser la base de données
