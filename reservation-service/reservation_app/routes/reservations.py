@@ -18,32 +18,34 @@ def _require_token():
     auth_header = request.headers.get("Authorization")
 
     if not auth_header:
-        return jsonify({"error": "Missing token"}), 401
+        return None, (jsonify({"error": "Missing token"}), 401)
 
     try:
         token = auth_header.split(" ")[1]
-        jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        if "user_id" not in payload:
+            return None, (jsonify({"error": "Invalid token"}), 401)
     except Exception:
-        return jsonify({"error": "Invalid token"}), 401
+        return None, (jsonify({"error": "Invalid token"}), 401)
 
-    return None
+    return payload, None
 
 
 @reservations_bp.route("/requests", methods=["POST"])
 def create_request():
-    auth_error = _require_token()
+    payload, auth_error = _require_token()
     if auth_error:
         return auth_error
 
     data = request.get_json(silent=True) or {}
 
-    tenant_id = data.get("tenant_id")
+    tenant_id = payload["user_id"]
     housing_id = data.get("housing_id")
     start_date = data.get("start_date")
     end_date = data.get("end_date")
     notes = data.get("notes")
 
-    if not tenant_id or not housing_id or not start_date or not end_date:
+    if not housing_id or not start_date or not end_date:
         return jsonify({"error": "Missing required fields"}), 400
 
     reservation = create_reservation_request(
@@ -77,7 +79,7 @@ def create_request():
 
 @reservations_bp.route("/requests", methods=["GET"])
 def list_requests():
-    auth_error = _require_token()
+    _, auth_error = _require_token()
     if auth_error:
         return auth_error
 
@@ -96,7 +98,7 @@ def list_requests():
 
 @reservations_bp.route("/requests/<int:reservation_id>", methods=["GET"])
 def get_request(reservation_id):
-    auth_error = _require_token()
+    _, auth_error = _require_token()
     if auth_error:
         return auth_error
 
@@ -110,7 +112,7 @@ def get_request(reservation_id):
 
 @reservations_bp.route("/requests/<int:reservation_id>/status", methods=["PATCH"])
 def patch_request_status(reservation_id):
-    auth_error = _require_token()
+    _, auth_error = _require_token()
     if auth_error:
         return auth_error
 

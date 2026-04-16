@@ -22,14 +22,33 @@ def auth_headers(monkeypatch):
 
 
 def test_create_request_returns_401_when_token_is_missing(client):
-    response = client.post("/reservations/requests", json={"tenant_id": 1})
+    response = client.post("/reservations/requests", json={"housing_id": 1})
 
     assert response.status_code == 401
     assert response.get_json() == {"error": "Missing token"}
 
 
+def test_create_request_returns_401_when_token_payload_is_missing_user_id(client, monkeypatch):
+    monkeypatch.setattr(
+        "reservation_app.routes.reservations.jwt.decode",
+        lambda token, secret, algorithms: {"sub": "abc"},
+    )
+    response = client.post(
+        "/reservations/requests",
+        json={
+            "housing_id": 22,
+            "start_date": "2026-05-01",
+            "end_date": "2026-05-31",
+        },
+        headers={"Authorization": "Bearer test-token"},
+    )
+
+    assert response.status_code == 401
+    assert response.get_json() == {"error": "Invalid token"}
+
+
 def test_create_request_returns_400_when_fields_are_missing(client, auth_headers):
-    response = client.post("/reservations/requests", json={"tenant_id": 1}, headers=auth_headers)
+    response = client.post("/reservations/requests", json={"housing_id": 22}, headers=auth_headers)
 
     assert response.status_code == 400
     assert response.get_json() == {"error": "Missing required fields"}
@@ -55,7 +74,6 @@ def test_create_request_returns_201_when_request_is_created(client, monkeypatch,
     response = client.post(
         "/reservations/requests",
         json={
-            "tenant_id": 1,
             "housing_id": 22,
             "start_date": "2026-05-01",
             "end_date": "2026-05-31",
@@ -78,7 +96,6 @@ def test_create_request_returns_404_when_tenant_is_missing_in_user_service(clien
     response = client.post(
         "/reservations/requests",
         json={
-            "tenant_id": 987,
             "housing_id": 22,
             "start_date": "2026-05-01",
             "end_date": "2026-05-31",
@@ -100,7 +117,6 @@ def test_create_request_returns_404_when_housing_is_missing_in_housing_service(c
     response = client.post(
         "/reservations/requests",
         json={
-            "tenant_id": 1,
             "housing_id": 999,
             "start_date": "2026-05-01",
             "end_date": "2026-05-31",
@@ -122,7 +138,6 @@ def test_create_request_returns_400_when_date_format_is_invalid(client, monkeypa
     response = client.post(
         "/reservations/requests",
         json={
-            "tenant_id": 1,
             "housing_id": 22,
             "start_date": "01-05-2026",
             "end_date": "31-05-2026",
@@ -144,7 +159,6 @@ def test_create_request_returns_400_when_date_range_is_invalid(client, monkeypat
     response = client.post(
         "/reservations/requests",
         json={
-            "tenant_id": 1,
             "housing_id": 22,
             "start_date": "2026-06-01",
             "end_date": "2026-05-01",
@@ -166,7 +180,6 @@ def test_create_request_returns_409_when_housing_is_marked_unavailable(client, m
     response = client.post(
         "/reservations/requests",
         json={
-            "tenant_id": 1,
             "housing_id": 22,
             "start_date": "2026-05-01",
             "end_date": "2026-05-31",
@@ -188,7 +201,6 @@ def test_create_request_returns_409_when_period_overlaps(client, monkeypatch, au
     response = client.post(
         "/reservations/requests",
         json={
-            "tenant_id": 1,
             "housing_id": 22,
             "start_date": "2026-05-15",
             "end_date": "2026-05-25",
