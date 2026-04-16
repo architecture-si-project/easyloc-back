@@ -65,13 +65,13 @@ def search_housings():
     return jsonify(result)
 
 
-@housing_bp.route("/owner/<int:owner_id>", methods=["GET"])
-def get_housings_by_owner(owner_id):
-    _, auth_error = _require_token()
+@housing_bp.route("/mine", methods=["GET"])
+def get_housings_by_owner():
+    payload, auth_error = _require_token()
     if auth_error:
         return auth_error
 
-    return jsonify(get_by_owner(owner_id))
+    return jsonify(get_by_owner(payload["user_id"]))
 
 
 @housing_bp.route("/<int:housing_id>", methods=["GET"])
