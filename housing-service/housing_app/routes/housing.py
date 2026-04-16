@@ -3,7 +3,7 @@ import os
 import jwt
 from flask import Blueprint, jsonify, request
 
-from housing_app.services.housing_service import create, delete, get_all, get_by_id, search, update
+from housing_app.services.housing_service import create, delete, get_all, get_by_id, get_by_owner, search, update
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 
@@ -60,10 +60,18 @@ def search_housings():
         location=request.args.get("location"),
         property_type=request.args.get("property_type"),
         price_max=request.args.get("price_max", type=float),
-        available=_parse_boolean(request.args.get("available")),
         owner_id=request.args.get("owner_id", type=int),
     )
     return jsonify(result)
+
+
+@housing_bp.route("/owner/<int:owner_id>", methods=["GET"])
+def get_housings_by_owner(owner_id):
+    _, auth_error = _require_token()
+    if auth_error:
+        return auth_error
+
+    return jsonify(get_by_owner(owner_id))
 
 
 @housing_bp.route("/<int:housing_id>", methods=["GET"])

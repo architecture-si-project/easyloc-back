@@ -67,7 +67,28 @@ def get_by_id(housing_id):
     return _serialize_housing_row(row)
 
 
-def search(location=None, property_type=None, price_max=None, available=None, owner_id=None):
+def get_by_owner(owner_id):
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute(
+        """
+        SELECT id, title, description, property_type, location, price_per_night, available, owner_id, created_at, updated_at
+        FROM housing
+        WHERE owner_id = %s
+        ORDER BY created_at DESC, id DESC
+        """,
+        (owner_id,),
+    )
+    rows = cur.fetchall()
+
+    cur.close()
+    conn.close()
+
+    return [_serialize_housing_row(row) for row in rows]
+
+
+def search(location=None, property_type=None, price_max=None, owner_id=None):
     conn = get_connection()
     cur = conn.cursor()
 
@@ -89,10 +110,6 @@ def search(location=None, property_type=None, price_max=None, available=None, ow
     if price_max is not None:
         query += " AND price_per_night <= %s"
         params.append(price_max)
-
-    if available is not None:
-        query += " AND available = %s"
-        params.append(available)
 
     if owner_id is not None:
         query += " AND owner_id = %s"
