@@ -19,7 +19,7 @@ ALLOWED_STATUSES = {
 }
 
 ALLOWED_TRANSITIONS = {
-    "pending": {"under_review", "rejected"},
+    "pending": {"under_review", "approved", "rejected"},
     "under_review": {"approved", "rejected"},
     "approved": {"contract_signed", "rejected"},
     "contract_signed": {"active", "rejected"},
@@ -143,12 +143,12 @@ def has_overlapping_reservation(housing_id, start_date, end_date):
         SELECT 1
         FROM reservation_requests
         WHERE housing_id = %s
-          AND status NOT IN (%s, %s)
+                    AND status NOT IN (%s, %s)
           AND start_date <= %s
           AND end_date >= %s
         LIMIT 1
         """,
-        (housing_id, "rejected", "closed", end_date, start_date),
+                (housing_id, "rejected", "closed", end_date, start_date),
     )
     overlap = cur.fetchone() is not None
 

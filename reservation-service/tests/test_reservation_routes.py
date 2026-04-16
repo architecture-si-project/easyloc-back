@@ -326,9 +326,9 @@ def test_patch_request_status_returns_200_when_valid(client, monkeypatch, auth_h
 
     response = client.patch(
         "/reservations/requests/1/status",
-        json={"status": "under_review", "actor_id": 7, "comment": "Documents validated"},
+        json={"status": "approved", "actor_id": 7, "comment": "Documents validated"},
         headers=auth_headers,
     )
 
     assert response.status_code == 200
-    assert response.get_json()["status"] == "under_review"
+    assert response.get_json()["status"] == "approved"
