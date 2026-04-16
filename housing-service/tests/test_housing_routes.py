@@ -114,7 +114,7 @@ def test_get_housing_by_id_returns_404_when_missing(client, monkeypatch, auth_he
 def test_search_housing_returns_filtered_items(client, monkeypatch, auth_headers):
     monkeypatch.setattr(
         "housing_app.routes.housing.search",
-        lambda location, property_type, price_max, available, owner_id: [
+        lambda location, property_type, price_max, owner_id: [
             {
                 "id": 1,
                 "title": "Maison Bordeaux",
