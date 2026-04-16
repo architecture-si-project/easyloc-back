@@ -58,7 +58,7 @@ def test_create_request_returns_201_when_request_is_created(client, monkeypatch,
 
     monkeypatch.setattr(
         "reservation_app.routes.reservations.create_reservation_request",
-        lambda tenant_id, housing_id, start_date, end_date, notes: {
+        lambda tenant_id, housing_id, start_date, end_date, notes, auth_token=None: {
             "reservation_id": 1,
             "tenant_id": tenant_id,
             "housing_id": housing_id,
@@ -86,11 +86,76 @@ def test_create_request_returns_201_when_request_is_created(client, monkeypatch,
     assert response.get_json()["status"] == "pending"
 
 
+def test_create_request_forwards_auth_token_to_service(client, monkeypatch, auth_headers):
+    captured = {}
+
+    def fake_create_reservation_request(tenant_id, housing_id, start_date, end_date, notes, auth_token=None):
+        captured["auth_token"] = auth_token
+        return {
+            "reservation_id": 2,
+            "tenant_id": tenant_id,
+            "housing_id": housing_id,
+            "start_date": start_date,
+            "end_date": end_date,
+            "status": "pending",
+            "notes": notes,
+            "created_at": "2026-04-10T10:00:00+00:00",
+            "updated_at": "2026-04-10T10:00:00+00:00",
+        }
+
+    monkeypatch.setattr(
+        "reservation_app.routes.reservations.create_reservation_request",
+        fake_create_reservation_request,
+    )
+
+    response = client.post(
+        "/reservations/requests",
+        json={
+            "housing_id": 22,
+            "start_date": "2026-05-01",
+            "end_date": "2026-05-31",
+            "notes": "Need furnished place",
+        },
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 201
+    assert captured["auth_token"] == "test-token"
+
+
+def test_list_my_requests_returns_401_when_token_is_missing(client):
+    response = client.get("/reservations/requests/me")
+
+    assert response.status_code == 401
+    assert response.get_json() == {"error": "Missing token"}
+
+
+def test_list_my_requests_filters_by_current_user(client, monkeypatch, auth_headers):
+    captured = {}
+
+    def fake_list_reservation_requests(status=None, tenant_id=None):
+        captured["status"] = status
+        captured["tenant_id"] = tenant_id
+        return [{"reservation_id": 1, "tenant_id": tenant_id, "status": "pending"}]
+
+    monkeypatch.setattr(
+        "reservation_app.routes.reservations.list_reservation_requests",
+        fake_list_reservation_requests,
+    )
+
+    response = client.get("/reservations/requests/me?status=pending", headers=auth_headers)
+
+    assert response.status_code == 200
+    assert captured["tenant_id"] == 1
+    assert captured["status"] == "pending"
+    assert response.get_json()[0]["tenant_id"] == 1
+
+
 def test_create_request_returns_404_when_tenant_is_missing_in_user_service(client, monkeypatch, auth_headers):
 
     monkeypatch.setattr(
         "reservation_app.routes.reservations.create_reservation_request",
-        lambda tenant_id, housing_id, start_date, end_date, notes: {"error": "tenant_not_found"},
+        lambda tenant_id, housing_id, start_date, end_date, notes, auth_token=None: {"error": "tenant_not_found"},
     )
 
     response = client.post(
@@ -111,7 +176,7 @@ def test_create_request_returns_404_when_housing_is_missing_in_housing_service(c
 
     monkeypatch.setattr(
         "reservation_app.routes.reservations.create_reservation_request",
-        lambda tenant_id, housing_id, start_date, end_date, notes: {"error": "housing_not_found"},
+        lambda tenant_id, housing_id, start_date, end_date, notes, auth_token=None: {"error": "housing_not_found"},
     )
 
     response = client.post(
@@ -132,7 +197,7 @@ def test_create_request_returns_400_when_date_format_is_invalid(client, monkeypa
 
     monkeypatch.setattr(
         "reservation_app.routes.reservations.create_reservation_request",
-        lambda tenant_id, housing_id, start_date, end_date, notes: {"error": "invalid_date_format"},
+        lambda tenant_id, housing_id, start_date, end_date, notes, auth_token=None: {"error": "invalid_date_format"},
     )
 
     response = client.post(
@@ -153,7 +218,7 @@ def test_create_request_returns_400_when_date_range_is_invalid(client, monkeypat
 
     monkeypatch.setattr(
         "reservation_app.routes.reservations.create_reservation_request",
-        lambda tenant_id, housing_id, start_date, end_date, notes: {"error": "invalid_date_range"},
+        lambda tenant_id, housing_id, start_date, end_date, notes, auth_token=None: {"error": "invalid_date_range"},
     )
 
     response = client.post(
@@ -174,7 +239,7 @@ def test_create_request_returns_409_when_housing_is_marked_unavailable(client, m
 
     monkeypatch.setattr(
         "reservation_app.routes.reservations.create_reservation_request",
-        lambda tenant_id, housing_id, start_date, end_date, notes: {"error": "housing_not_available"},
+        lambda tenant_id, housing_id, start_date, end_date, notes, auth_token=None: {"error": "housing_not_available"},
     )
 
     response = client.post(
@@ -195,7 +260,7 @@ def test_create_request_returns_409_when_period_overlaps(client, monkeypatch, au
 
     monkeypatch.setattr(
         "reservation_app.routes.reservations.create_reservation_request",
-        lambda tenant_id, housing_id, start_date, end_date, notes: {"error": "overlapping_reservation"},
+        lambda tenant_id, housing_id, start_date, end_date, notes, auth_token=None: {"error": "overlapping_reservation"},
     )
 
     response = client.post(

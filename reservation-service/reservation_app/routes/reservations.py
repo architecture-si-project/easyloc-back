@@ -37,6 +37,9 @@ def create_request():
     if auth_error:
         return auth_error
 
+    auth_header = request.headers.get("Authorization", "")
+    auth_token = auth_header.split(" ")[1] if " " in auth_header else None
+
     data = request.get_json(silent=True) or {}
 
     tenant_id = payload["user_id"]
@@ -54,6 +57,7 @@ def create_request():
         start_date=start_date,
         end_date=end_date,
         notes=notes,
+        auth_token=auth_token,
     )
 
     if reservation.get("error") == "tenant_not_found":
@@ -93,6 +97,17 @@ def list_requests():
             return jsonify({"error": "tenant_id must be an integer"}), 400
 
     reservations = list_reservation_requests(status=status, tenant_id=tenant_id)
+    return jsonify(reservations)
+
+
+@reservations_bp.route("/requests/me", methods=["GET"])
+def list_my_requests():
+    payload, auth_error = _require_token()
+    if auth_error:
+        return auth_error
+
+    status = request.args.get("status")
+    reservations = list_reservation_requests(status=status, tenant_id=payload["user_id"])
     return jsonify(reservations)
 
 

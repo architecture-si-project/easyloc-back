@@ -57,19 +57,19 @@ def can_transition(current_status: str, new_status: str):
     return new_status in ALLOWED_TRANSITIONS.get(current_status, set())
 
 
-def _resource_exists(url):
+def _resource_exists(url, headers=None):
     # Make a short HTTP call to verify that a remote resource exists.
     try:
-        response = requests.get(url, timeout=2)
+        response = requests.get(url, timeout=2, headers=headers)
         return response.status_code == 200
     except requests.RequestException:
         return False
 
 
-def _fetch_resource(url):
+def _fetch_resource(url, headers=None):
     # Fetch a remote JSON resource to validate business attributes.
     try:
-        response = requests.get(url, timeout=2)
+        response = requests.get(url, timeout=2, headers=headers)
         if response.status_code != 200:
             return None
         return response.json()
@@ -77,12 +77,30 @@ def _fetch_resource(url):
         return None
 
 
-def validate_cross_service_references(tenant_id, housing_id):
+def _build_auth_headers(auth_token=None):
+    if not auth_token:
+        return None
+    return {"Authorization": f"Bearer {auth_token}"}
+
+
+def validate_cross_service_references(tenant_id, housing_id, auth_token=None):
     # Check external dependencies to keep the services consistent.
-    if not _resource_exists(f"{USER_SERVICE_URL}/users/{tenant_id}"):
+    headers = _build_auth_headers(auth_token)
+
+    if headers:
+        tenant_exists = _resource_exists(f"{USER_SERVICE_URL}/users/{tenant_id}", headers=headers)
+    else:
+        tenant_exists = _resource_exists(f"{USER_SERVICE_URL}/users/{tenant_id}")
+
+    if not tenant_exists:
         return {"error": "tenant_not_found"}
 
-    if not _resource_exists(f"{HOUSING_SERVICE_URL}/housing/{housing_id}"):
+    if headers:
+        housing_exists = _resource_exists(f"{HOUSING_SERVICE_URL}/housing/{housing_id}", headers=headers)
+    else:
+        housing_exists = _resource_exists(f"{HOUSING_SERVICE_URL}/housing/{housing_id}")
+
+    if not housing_exists:
         return {"error": "housing_not_found"}
 
     return None
@@ -102,9 +120,14 @@ def validate_reservation_dates(start_date, end_date):
     return {"start_date": parsed_start, "end_date": parsed_end}
 
 
-def is_housing_available(housing_id):
+def is_housing_available(housing_id, auth_token=None):
     # Check whether the housing unit is currently available in housing-service.
-    housing = _fetch_resource(f"{HOUSING_SERVICE_URL}/housing/{housing_id}")
+    headers = _build_auth_headers(auth_token)
+    if headers:
+        housing = _fetch_resource(f"{HOUSING_SERVICE_URL}/housing/{housing_id}", headers=headers)
+    else:
+        housing = _fetch_resource(f"{HOUSING_SERVICE_URL}/housing/{housing_id}")
+
     if not housing:
         return False
     return bool(housing.get("available", True))
@@ -135,7 +158,7 @@ def has_overlapping_reservation(housing_id, start_date, end_date):
     return overlap
 
 
-def create_reservation_request(tenant_id, housing_id, start_date, end_date, notes=None):
+def create_reservation_request(tenant_id, housing_id, start_date, end_date, notes=None, auth_token=None):
     # Reject creation when the dates are invalid.
     date_validation = validate_reservation_dates(start_date, end_date)
 
@@ -146,12 +169,20 @@ def create_reservation_request(tenant_id, housing_id, start_date, end_date, note
     parsed_end_date = date_validation["end_date"]
 
     # Prevent creation if the tenant or housing unit does not exist in the other services.
-    validation_error = validate_cross_service_references(tenant_id, housing_id)
+    if auth_token:
+        validation_error = validate_cross_service_references(tenant_id, housing_id, auth_token)
+    else:
+        validation_error = validate_cross_service_references(tenant_id, housing_id)
 
     if validation_error:
         return validation_error
 
-    if not is_housing_available(housing_id):
+    if auth_token:
+        housing_available = is_housing_available(housing_id, auth_token)
+    else:
+        housing_available = is_housing_available(housing_id)
+
+    if not housing_available:
         return {"error": "housing_not_available"}
 
     if has_overlapping_reservation(housing_id, parsed_start_date, parsed_end_date):
