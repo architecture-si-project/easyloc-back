@@ -61,6 +61,7 @@ def search_housings():
         property_type=request.args.get("property_type"),
         price_max=request.args.get("price_max", type=float),
         available=_parse_boolean(request.args.get("available")),
+        owner_id=request.args.get("owner_id", type=int),
     )
     return jsonify(result)
 

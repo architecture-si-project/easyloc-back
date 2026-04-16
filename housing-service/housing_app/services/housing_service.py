@@ -67,7 +67,7 @@ def get_by_id(housing_id):
     return _serialize_housing_row(row)
 
 
-def search(location=None, property_type=None, price_max=None, available=None):
+def search(location=None, property_type=None, price_max=None, available=None, owner_id=None):
     conn = get_connection()
     cur = conn.cursor()
 
@@ -93,6 +93,10 @@ def search(location=None, property_type=None, price_max=None, available=None):
     if available is not None:
         query += " AND available = %s"
         params.append(available)
+
+    if owner_id is not None:
+        query += " AND owner_id = %s"
+        params.append(owner_id)
 
     query += " ORDER BY created_at DESC, id DESC"
 
