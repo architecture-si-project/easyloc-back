@@ -129,6 +129,26 @@ def test_validate_cross_service_references_uses_new_housing_endpoint(monkeypatch
     assert calls[1].endswith("/housing/8")
 
 
+def test_validate_cross_service_references_forwards_bearer_token(monkeypatch):
+    calls = []
+
+    def fake_resource_exists(url, headers=None):
+        calls.append((url, headers))
+        return True
+
+    monkeypatch.setattr(reservation_service, "_resource_exists", fake_resource_exists)
+
+    result = reservation_service.validate_cross_service_references(
+        tenant_id=4,
+        housing_id=8,
+        auth_token="token-123",
+    )
+
+    assert result is None
+    assert calls[0][1] == {"Authorization": "Bearer token-123"}
+    assert calls[1][1] == {"Authorization": "Bearer token-123"}
+
+
 def test_is_housing_available_uses_available_field(monkeypatch):
     monkeypatch.setattr(
         reservation_service,
