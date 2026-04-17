@@ -2,6 +2,7 @@ from flask import Flask
 from flasgger import Swagger
 
 from .routes.auth import auth_bp
+from .routes.users import users_bp
 
 
 TAG_NAME = "user-service"
@@ -44,5 +45,6 @@ def create_app():
     _init_swagger(app)
 
     app.register_blueprint(auth_bp)
+    app.register_blueprint(users_bp)
 
     return app

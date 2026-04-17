@@ -84,4 +84,24 @@ def get_user_by_email(email):
     return user
 
 
+def get_user_by_id(user_id):
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("SELECT id, name, email FROM users WHERE id = %s", (user_id,))
+    user = cur.fetchone()
+
+    cur.close()
+    conn.close()
+
+    if not user:
+        return None
+
+    return {
+        "id": user[0],
+        "name": user[1],
+        "email": user[2],
+    }
+
+
 

@@ -76,3 +76,28 @@ def test_register_returns_409_when_user_already_exists(client, monkeypatch):
     assert response.status_code == 409
     assert response.get_json() == {"error": "User already exists"}
 
+
+def test_get_user_returns_404_when_user_is_missing(client, monkeypatch):
+    monkeypatch.setattr("user_app.routes.users.get_user_by_id", lambda user_id: None)
+
+    response = client.get("/users/999")
+
+    assert response.status_code == 404
+    assert response.get_json() == {"error": "User not found"}
+
+
+def test_get_user_returns_user_when_found(client, monkeypatch):
+    monkeypatch.setattr(
+        "user_app.routes.users.get_user_by_id",
+        lambda user_id: {"id": user_id, "name": "John", "email": "john@example.com"},
+    )
+
+    response = client.get("/users/1")
+
+    assert response.status_code == 200
+    assert response.get_json() == {
+        "id": 1,
+        "name": "John",
+        "email": "john@example.com",
+    }
+
